@@ -1,4 +1,6 @@
 
+// Are the characters bold
+#define OPTTBOLD
 // Time between frames
 #define OPTTIME 15000
 // Chance for the pipe to change direction

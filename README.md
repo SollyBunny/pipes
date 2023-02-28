@@ -4,6 +4,7 @@ Pipes terminal screen saver made in C
 
 ## Config
 Config can be found in `config.h`  
+`OPTBOLD`: Are the characters bold  
 `OPTTIME`: Time between frames  
 `OPTCHANCE`: Chance for the pipe to change direction
 
