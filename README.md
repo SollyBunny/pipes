@@ -12,7 +12,8 @@ Config can be found in `config.h`
 Run `make`
 
 ## Installing
-Run `make install`
+Run `make install` to install  
+Run `make uninstall` to uninstall
 
 ## Usage
 Run `pipes`
