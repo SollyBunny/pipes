@@ -1,4 +1,4 @@
-# matrix
+# pipes
 Pipes terminal screen saver made in C  
 (Also see [matrix](https://github.com/SollyBunny/matrix))
 
@@ -21,3 +21,4 @@ Run `pipes`
 ## Problems
 At the start a few thousand ticks could be pre-computed to make it always look like it has been running  
 There could be overlap detection creating + shapes where things cross  
+Cmdline args
