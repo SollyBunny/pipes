@@ -4,9 +4,12 @@ Pipes terminal screen saver made in C
 
 ## Config
 Config can be found in `config.h`  
-`OPTBOLD`: Are the characters bold  
-`OPTTIME`: Time between frames  
-`OPTCHANCE`: Chance for the pipe to change direction
+`OPTTBOLD`: Whether the characters bold  
+`OPTTIME`: Time between frames in us  
+`OPTCHANCE`: Chance for the pipe to change direction  
+`OPTERASERIT`: Iterations between each eraser tick (undefine to disable)  
+`OPTPRESIM`: Number of iterations to presimulate  
+You can also set the color using the `THEME_COLOR` environment variable
 
 ## Compiling
 Run `make`
@@ -18,7 +21,6 @@ Run `make uninstall` to uninstall
 ## Usage
 Run `pipes`
 
-## Problems
-At the start a few thousand ticks could be pre-computed to make it always look like it has been running  
-There could be overlap detection creating + shapes where things cross  
-Cmdline args
+## TODO
+* There could be overlap detection creating + shapes where things cross  
+* Command line args

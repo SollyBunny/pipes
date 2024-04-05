@@ -18,15 +18,25 @@ void sigwinch(int _) {
 	ioctl(0, TIOCGWINSZ, &_winsize);
 }
 
-struct {
+typedef struct {
 	int x;
 	int y;
-	int dir;
-} pos;
+	short int dir;
+	short int c;
+} Pos;
 
+Pos pos;
+#ifdef OPTERASERIT
+	Pos eraser;
+#endif
+
+unsigned char R = DEFAULTR;
+unsigned char G = DEFAULTG;
+unsigned char B = DEFAULTB;
+unsigned char colors[3];
 void setcolor() {
-	randcolor();
-	printf("\x1b[38;2;%u;%u;%um", color[0], color[1], color[2]);
+	randcolor(colors, R, G, B);
+	printf("\x1b[38;2;%hhu;%hhu;%hhum", colors[0], colors[1], colors[2]);
 }
 
 char _sgetcharwaiting;
@@ -36,6 +46,61 @@ char sgetchar() {
 	return getchar();
 }
 
+void postick(Pos *p) {
+	static int randn;
+	switch (p->dir) {
+		case 0: 
+			p->x += 1; 
+			if (p->x > W) {
+				p->x = 0;
+				setcolor();
+			}
+			break;
+		case 1: 
+			p->y += 1; 
+			if (p->y > H) {
+				p->y = 0;
+				setcolor();
+			}
+			break;
+		case 2: 
+			p->x -= 1; 
+			if (p->x < 1) {
+				p->x = W;
+				setcolor();
+			}
+			break;
+		case 3: 
+			p->y -= 1;
+			if (p->y < 1) {
+				p->y = H;
+				setcolor();
+			}
+			break;
+	}
+	randn = rand();
+	if (randn % 100 > OPTCHANCE) {
+		// 0 1 2 3 4 5
+		// ┃ ━ ┏ ┓ ┗ ┛;
+		if (randn > RAND_MAX / 2) {
+			switch (p->dir) {
+				case 0: p->dir = 1; p->c = 3; break;
+				case 1: p->dir = 2; p->c = 5; break;
+				case 2: p->dir = 3; p->c = 4; break;
+				case 3: p->dir = 0; p->c = 2; break;
+			}
+		} else {
+			switch (p->dir) { // 
+				case 3: p->dir = 2; p->c = 3; break;
+				case 2: p->dir = 1; p->c = 2; break;
+				case 1: p->dir = 0; p->c = 4; break;
+				case 0: p->dir = 3; p->c = 5; break;
+			}
+		}
+	} else if (p->c > 1) {
+		p->c = p->dir == 1 || p->dir == 3 ? 0 : 1;
+	}
+}
 
 int main() {
 
@@ -43,6 +108,14 @@ int main() {
 	sigwinch(0);
 	signal(SIGWINCH, sigwinch);
 	srand(time(NULL));
+
+	// Check for THEME_COLOR
+	{
+		const char* theme_color;
+		if ((theme_color = getenv("THEME_COLOR"))) {
+			sscanf(theme_color, "%hhu;%hhu;%hhu", &R, &G, &B);
+		}
+	}
 
 	// Term
 	#ifdef OPTBOLD
@@ -60,75 +133,40 @@ int main() {
 	// Init screen
 	pos.x = rand() % W;
 	pos.y = rand() % H;
+	#ifdef OPTERASERIT
+		eraser.x = rand() % W;
+		eraser.y = rand() % H;
+	#endif
 	setcolor();
 	
 	// Mainloop
-	static unsigned char printc = 1;
-	static int randn;
 	static char c;
+	static unsigned int presim = OPTPRESIM;
+	static unsigned char i = 0;
 	while (1) {
-		c = sgetchar();
-		switch (c) {
-			case 3: // ctrl-c
-				goto l_end;
-		}
-		switch (pos.dir) {
-			case 0: 
-				pos.x += 1; 
-				if (pos.x > W) {
-					pos.x = 0;
-					setcolor();
-				}
-				break;
-			case 1: 
-				pos.y += 1; 
-				if (pos.y > H) {
-					pos.y = 0;
-					setcolor();
-				}
-				break;
-			case 2: 
-				pos.x -= 1; 
-				if (pos.x < 1) {
-					pos.x = W;
-					setcolor();
-				}
-				break;
-			case 3: 
-				pos.y -= 1;
-				if (pos.y < 1) {
-					pos.y = H;
-					setcolor();
-				}
-				break;
-		}
-		printf("\x1b[%d;%dH", pos.y, pos.x);
-		randn = rand();
-		if (randn % 100 > OPTCHANCE) {
-			// 0 1 2 3 4 5
-			// ┃ ━ ┏ ┓ ┗ ┛;
-			if (randn > RAND_MAX / 2) {
-				switch (pos.dir) {
-					case 0: pos.dir = 1; printc = 3; break;
-					case 1: pos.dir = 2; printc = 5; break;
-					case 2: pos.dir = 3; printc = 4; break;
-					case 3: pos.dir = 0; printc = 2; break;
-				}
-			} else {
-				switch (pos.dir) { // 
-					case 3: pos.dir = 2; printc = 3; break;
-					case 2: pos.dir = 1; printc = 2; break;
-					case 1: pos.dir = 0; printc = 4; break;
-					case 0: pos.dir = 3; printc = 5; break;
-				}
+		if (presim == 0) {
+			c = sgetchar();
+			switch (c) {
+				case 3: // ctrl-c
+					goto l_end;
 			}
-			printf(chars[printc]);
-			printc = pos.dir == 1 || pos.dir == 3 ? 0 : 1;
-		} else {
-			printf(chars[printc]);
+			#ifdef OPTERASERIT
+				// do eraser
+				if (++i > OPTERASERIT) {
+					i = 0;
+					postick(&eraser);
+					printf("\x1b[%d;%dH ", eraser.y, eraser.x);
+				}
+			#endif
 		}
-		fflush(stdout);
-		usleep(OPTTIME);
+		postick(&pos);
+		printf("\x1b[%d;%dH%s", pos.y, pos.x, chars[pos.c]);
+		if (presim == 0) {
+			fflush(stdout);
+			usleep(OPTTIME);
+		} else {
+			--presim;
+		}
 	}
 
 	l_end:
